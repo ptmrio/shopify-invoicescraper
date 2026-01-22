@@ -290,6 +290,14 @@ app.add_middleware(
 | No invoice found | Order may not have VAT invoice yet—check in Shopify Admin |
 | Errors | Check `screenshots/` for debug images |
 
+## Support This Project ☕
+
+Did this save you hours of manual clicking? Consider buying me a beer!
+
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=github)](https://github.com/sponsors/ptmrio)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-FF5E5B?logo=ko-fi)](https://ko-fi.com/spqrk)
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal)](https://paypal.me/realSPQRK)
+
 ## Disclaimer
 
 **Not affiliated with Shopify Inc.** Shopify® is a registered trademark of Shopify Inc. Use at your own risk.

@@ -578,7 +578,27 @@ async def scrape_admin_invoice(
         await human_delay("download")
         
         # Navigate to PDF URL and capture response
-        pdf_response = await page.goto(invoice_url, wait_until='load')
+        # Use 'commit' instead of 'load' - PDFs don't trigger normal load events
+        try:
+            pdf_response = await page.goto(invoice_url, wait_until='commit', timeout=settings.timeout_download)
+        except Exception as e:
+            error_msg = str(e)
+            if 'Timeout' in error_msg:
+                logger.warning(f"PDF download timeout for {invoice_number}, retrying with networkidle...")
+                try:
+                    pdf_response = await page.goto(invoice_url, wait_until='domcontentloaded', timeout=settings.timeout_download)
+                except Exception as e2:
+                    screenshot_path = await _save_screenshot(page, f"pdf_timeout_{order_id}")
+                    await page.close()
+                    return ScrapeResult(
+                        success=False,
+                        shopify_order_id=order_id,
+                        order_name=order_name,
+                        error=f"PDF download timeout: {e2}",
+                        screenshot_path=screenshot_path
+                    )
+            else:
+                raise
         
         if pdf_response and pdf_response.status == 200:
             pdf_content = await pdf_response.body()

@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Set required environment variables for tests BEFORE importing config
 os.environ.setdefault('STORE_SLUG', 'test-store')
+os.environ.setdefault('TIMEZONE', 'UTC')
 
 # Mock camoufox before any imports that need it
 sys.modules['camoufox'] = MagicMock()

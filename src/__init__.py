@@ -1,0 +1,1 @@
+"""Shopify VAT Invoice Scraper"""

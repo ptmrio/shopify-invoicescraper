@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project
+.env
+downloads/
+screenshots/
+logs/
+
+# Browser profile (contains session cookies - sensitive)
+.browser-profile/

@@ -577,32 +577,67 @@ async def scrape_admin_invoice(
         # Human-like delay before downloading
         await human_delay("download")
         
-        # Navigate to PDF URL and capture response
-        # Use 'commit' instead of 'load' - PDFs don't trigger normal load events
+        # Use response interception - don't rely on page load events for PDFs
+        # PDFs are binary data, not pages, so 'load' events are unreliable
+        pdf_content = None
+        pdf_status = None
+        
+        async def handle_response(response):
+            nonlocal pdf_content, pdf_status
+            if invoice_uuid in response.url and response.status == 200:
+                content_type = response.headers.get('content-type', '')
+                if 'pdf' in content_type or response.url.endswith('.pdf'):
+                    try:
+                        pdf_content = await response.body()
+                        pdf_status = response.status
+                    except Exception as e:
+                        logger.warning(f"Failed to read response body: {e}")
+        
+        # Listen for the PDF response
+        page.on('response', handle_response)
+        
         try:
-            pdf_response = await page.goto(invoice_url, wait_until='commit', timeout=settings.timeout_download)
+            # Navigate with 'commit' - fires when response headers received
+            # We don't wait for 'load' since PDFs don't have DOM
+            await page.goto(invoice_url, wait_until='commit', timeout=settings.timeout_download)
+            
+            # Give a moment for response body to be captured if not already
+            if pdf_content is None:
+                await page.wait_for_timeout(2000)
+            
         except Exception as e:
             error_msg = str(e)
+            # Timeout on 'commit' usually means network issue, not PDF handling
             if 'Timeout' in error_msg:
-                logger.warning(f"PDF download timeout for {invoice_number}, retrying with networkidle...")
-                try:
-                    pdf_response = await page.goto(invoice_url, wait_until='domcontentloaded', timeout=settings.timeout_download)
-                except Exception as e2:
-                    screenshot_path = await _save_screenshot(page, f"pdf_timeout_{order_id}")
-                    await page.close()
-                    return ScrapeResult(
-                        success=False,
-                        shopify_order_id=order_id,
-                        order_name=order_name,
-                        error=f"PDF download timeout: {e2}",
-                        screenshot_path=screenshot_path
-                    )
+                logger.warning(f"PDF navigation timeout for {invoice_number}: {error_msg}")
+                screenshot_path = await _save_screenshot(page, f"pdf_timeout_{order_id}")
+                page.remove_listener('response', handle_response)
+                await page.close()
+                return ScrapeResult(
+                    success=False,
+                    shopify_order_id=order_id,
+                    order_name=order_name,
+                    error=f"PDF download timeout: {error_msg}",
+                    screenshot_path=screenshot_path
+                )
             else:
+                page.remove_listener('response', handle_response)
                 raise
         
-        if pdf_response and pdf_response.status == 200:
-            pdf_content = await pdf_response.body()
-            
+        page.remove_listener('response', handle_response)
+        
+        # If interception didn't capture it, try reading from current response
+        if pdf_content is None:
+            try:
+                # Fallback: try to get response directly from page
+                response = await page.context.request.get(invoice_url, timeout=settings.timeout_download)
+                if response.status == 200:
+                    pdf_content = await response.body()
+                    pdf_status = response.status
+            except Exception as e:
+                logger.warning(f"Fallback PDF fetch failed: {e}")
+        
+        if pdf_content and pdf_status == 200:
             # Verify it's a PDF
             if not pdf_content.startswith(b'%PDF'):
                 # Might have hit a redirect or error page
@@ -621,14 +656,14 @@ async def scrape_admin_invoice(
             
             logger.info(f"PDF saved successfully: {filepath}")
         else:
-            status = pdf_response.status if pdf_response else 'None'
+            status = pdf_status if pdf_status else 'No response captured'
             screenshot_path = await _save_screenshot(page, f"pdf_download_failed_{order_id}")
             await page.close()
             return ScrapeResult(
                 success=False,
                 shopify_order_id=order_id,
                 order_name=order_name,
-                error=f"Failed to download PDF, HTTP status: {status}",
+                error=f"Failed to download PDF: {status}",
                 screenshot_path=screenshot_path
             )
         

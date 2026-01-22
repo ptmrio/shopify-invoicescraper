@@ -79,4 +79,41 @@ class Settings(BaseSettings):
         return folder
 
 
-settings = Settings()
+def _load_settings() -> Settings:
+    """Load settings with user-friendly error handling."""
+    try:
+        return Settings()
+    except Exception as e:
+        error_msg = str(e)
+        
+        # Check for missing STORE_SLUG
+        if 'store_slug' in error_msg.lower() or 'STORE_SLUG' in error_msg:
+            print("\n" + "="*60)
+            print("❌ CONFIGURATION ERROR: STORE_SLUG not set!")
+            print("="*60)
+            print()
+            print("Please configure your Shopify store:")
+            print()
+            print("  1. Copy .env.example to .env:")
+            print("     copy .env.example .env")
+            print()
+            print("  2. Edit .env and set your store slug:")
+            print("     STORE_SLUG=your-store-name")
+            print()
+            print("  Find your store slug in your Shopify admin URL:")
+            print("  https://admin.shopify.com/store/YOUR-STORE-SLUG")
+            print("                                  ^^^^^^^^^^^^^^")
+            print("="*60 + "\n")
+        else:
+            print("\n" + "="*60)
+            print("❌ CONFIGURATION ERROR")
+            print("="*60)
+            print(f"\n{error_msg}\n")
+            print("Check your .env file for errors.")
+            print("="*60 + "\n")
+        
+        import sys
+        sys.exit(1)
+
+
+settings = _load_settings()

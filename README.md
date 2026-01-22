@@ -21,10 +21,28 @@ We built this because option 1 is insane and option 2 is useless for any real ac
 
 ## Quick Start
 
+### Windows
+
+```batch
+git clone https://github.com/ptmrio/shopify-invoicescraper.git
+cd shopify-invoicescraper
+
+# Run setup (creates venv, installs dependencies, fetches Camoufox)
+setup.bat
+
+# Configure (edit .env and set STORE_SLUG=your-store-name)
+copy .env.example .env
+notepad .env
+
+# Start the scraper
+start.bat
+```
+
+### Linux/macOS
+
 ```bash
-# Clone and setup
-git clone <repo> && cd shopify-invoice-scraper
-python -m venv venv && source venv/bin/activate  # Windows: venv\Scripts\activate
+git clone https://github.com/ptmrio/shopify-invoicescraper.git && cd shopify-invoicescraper
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt && python -m camoufox fetch
 
 # Configure (required: set your store slug)
